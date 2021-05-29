@@ -1,0 +1,214 @@
+from pygame import *
+from random import *
+init()
+
+w = 800
+h = 600
+speed =  8
+size = 50
+win = display.set_mode((w,h))
+display.set_caption("Cool Game")
+myfont = font.SysFont('Comic Sans MS', 25)
+
+class GameSprite(sprite.Sprite):
+    def __init__(self,filename,x,y,width,height,speed):
+        sprite.Sprite.__init__(self)
+        self.image = Surface((size,size),SRCALPHA)
+##########################################################################
+# Image from file
+        self.image = transform.scale(image.load(filename),(width,height))
+# Square
+#        self.image = Surface((size,size))
+#        self.image.fill((255,0,0))
+# Circle
+#        self.image = Surface((size,size),SRCALPHA)
+#        self.skin = draw.circle(self.image,(255,0,0),(size//2,size//2),size//2)
+##########################################################################
+        self.rect = self.image.get_rect(center=(x,y))
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.speed = speed
+
+class Player(GameSprite):
+    def update(self):
+        keys = key.get_pressed()
+        if keys[K_UP] and self.rect.y > 0:
+            self.rect.y = self.rect.y - self.speed
+        if keys[K_DOWN] and self.rect.y < h - self.height:
+            self.rect.y = self.rect.y + self.speed
+        if keys[K_LEFT] and self.rect.x > 0:
+            self.rect.x = self.rect.x - self.speed
+        if keys[K_RIGHT] and self.rect.x < w - self.width:
+            self.rect.x = self.rect.x + self.speed
+    def reset(self):
+        win.blit(self.image,self.rect)
+
+class Back(GameSprite):
+    def reset(self):
+        win.blit(self.image,self.rect)
+        
+class Duck(sprite.Sprite):
+    def __init__(self,filename,x,y,width,height,speed,side):
+        sprite.Sprite.__init__(self)
+        self.image = Surface((size,size),SRCALPHA)
+        self.rect = self.image.get_rect(center=(x,y))
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.speed = speed
+        self.side = side
+        self.animation = 1 
+    def update(self):
+        if self.side == 1:
+            self.rect.y = self.rect.y - self.speed
+            self.rect.x = self.rect.x - self.speed
+            if self.animation > 10:
+                self.image = transform.scale(image.load("bduck1_left.png"),(self.width,self.height))
+                self.animation += 1
+                if self.animation == 20:
+                        self.animation = 0
+            else:
+                self.image = transform.scale(image.load("bduck2_left.png"),(self.width,self.height))
+                self.animation += 1
+        else:
+            self.rect.y = self.rect.y - self.speed
+            self.rect.x = self.rect.x + self.speed
+            if self.animation > 10:
+                self.image = transform.scale(image.load("bduck1.png"),(self.width,self.height))
+                self.animation += 1
+                if self.animation == 20:
+                        self.animation = 0
+            else:
+                self.image = transform.scale(image.load("bduck2.png"),(self.width,self.height))
+                self.animation += 1
+        
+    def reset(self):
+        win.blit(self.image,self.rect)
+        
+
+
+        
+        
+
+        
+player = Player("aim.png",w//2,h//2,20,20,8)
+bg = Back("background.png",w//2,h//2,w,h,0)
+duck1 = Duck("bduck1.png",randint(0.25*w,0.75*w),h*0.75,50,50,4,randint(0,1))
+duck2 = Duck("bduck1.png",randint(0.25*w,0.75*w),h*0.75,50,50,4,randint(0,1))
+game = True
+falling1 = False
+falling2 = False
+ammo = 3
+bullet1 = Back("ammo.png",0.2*w - 13,h-42,20,40,0)
+bullet2 = Back("ammo.png",0.2*w + 3,h-42,20,40,0)
+bullet3 = Back("ammo.png",0.2*w + 19,h-42,20,40,0)
+doggo = Back("dog.png",w//2,h*0.75,120,120,0)
+wait = 0
+rond = 1
+doglaugh = False
+score = 0
+hits = 0
+suchits = 0
+while game:
+    time.delay(15)
+    for i in event.get():
+        if i.type == QUIT:
+            game = False
+        if i.type == KEYDOWN and i.key == K_SPACE and ammo > 0:
+            ammo -= 1
+            hits += 1
+            if sprite.collide_rect(player,duck1):
+                falling1 = True
+                suchits += 1
+                score += 250
+                if falling2:
+                    score += 250
+            if sprite.collide_rect(player,duck2):
+                falling2 = True
+                score += 250
+                suchits += 1
+                if falling1:
+                    score += 250
+    
+    win.fill((128, 166, 255))
+    if not falling1:
+        duck1.update()
+    if falling1:
+        if duck1.rect.y <= h*0.75:
+            duck1.rect.y = duck1.rect.y + duck1.speed*2
+            duck1.image = transform.scale(image.load("bduck4.png"),(duck1.width,duck1.height))
+    duck1.reset()
+    if rond > 5:
+        if not falling2:
+            duck2.update()
+        if falling2:
+            if duck2.rect.y <= h*0.75:
+                duck2.rect.y = duck2.rect.y + duck2.speed*2
+                duck2.image = transform.scale(image.load("bduck4.png"),(duck2.width,duck2.height))
+        duck2.reset()
+        
+    if (falling1 or falling2) and (duck1.rect.y >= h*0.75 or duck2.rect.y >= h*0.75):
+        doggo.reset()
+        doggo.image = transform.scale(image.load("dog.png"),(doggo.width,doggo.height))
+        if doggo.rect.y >= 300:
+            doggo.rect.y -= 8
+        else:
+            falling1 = False
+            falling2 = False
+            rond += 1
+            duck1.side = randint(1,2)
+            duck1.rect.x = randint(0.25*w,0.75*w)
+            duck1.rect.y = h*0.75
+            duck2.side = randint(1,2)
+            duck2.rect.x = randint(0.25*w,0.75*w)
+            duck2.rect.y = h*0.75
+            ammo = 3
+    if doggo.rect.y <= h*0.75 and not falling1 and not falling2 and not doglaugh:
+        doggo.rect.y += 8
+        doggo.reset()
+        
+    if ((duck1.rect.x <= 0 or duck1.rect.x >= w) and rond <= 5) or ((duck1.rect.x <= 0 or duck1.rect.x >= w) and ((duck2.rect.x <= 0 or duck2.rect.x >= w) and rond > 5)):
+        doggo.reset()
+        doglaugh = True
+        doggo.image = transform.scale(image.load("doglaugh2.png"),(doggo.width,doggo.height))
+        if doggo.rect.y >= 300:
+            doggo.rect.y -= 7
+        else:
+            falling1 = False
+            falling2 = False
+            doglaugh = False
+            rond += 1
+            duck1.side = randint(1,2)
+            duck1.rect.x = randint(0.25*w,0.75*w)
+            duck1.rect.y = h*0.75
+            duck2.side = randint(1,2)
+            duck2.rect.x = randint(0.25*w,0.75*w)
+            duck2.rect.y = h*0.75
+            ammo = 3
+
+
+    
+    bg.reset()
+    textround = myfont.render(str(rond), False, (135, 253, 5))
+    win.blit(textround,(0.2*w + 10,h-109))
+    textscore = myfont.render(str(score), False, (255, 255, 255))
+    win.blit(textscore,(w-250,h-72))
+    texthit = myfont.render(str(hits) + '  |  ' + str(suchits), False, (255, 255, 255))
+    win.blit(texthit,(w//2-50,h-70))
+    player.update()
+    player.reset()
+    if ammo >= 3:
+        bullet1.reset()
+        bullet2.reset()
+        bullet3.reset()
+    elif ammo == 2:
+        bullet1.reset()
+        bullet2.reset()
+    elif ammo == 1:
+        bullet1.reset()
+    display.update()
+
+quit()
